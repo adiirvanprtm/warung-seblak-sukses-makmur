@@ -728,9 +728,18 @@
         return;
       }
       const data = new FormData(event.currentTarget);
-      const whatsappWindow = window.open("about:blank", "_blank");
-      if (whatsappWindow) whatsappWindow.opener = null;
-      const gpsLocation = await requestDeliveryLocation();
+      showToast("Menyiapkan pesanan WhatsApp...");
+      let gpsLocation = null;
+      try {
+        gpsLocation = await requestDeliveryLocation();
+      } catch (error) {
+        console.error("Lokasi GPS gagal diambil saat checkout.", error);
+        document.getElementById("location-status").textContent =
+          "Lokasi GPS gagal diambil. Pesanan akan memakai alamat yang kamu isi.";
+        locationUrl = "";
+        locationAccuracy = null;
+        showToast("GPS gagal diambil; pesanan tetap dikirim dengan alamat tertulis.");
+      }
       if (!isOrderOpen()) {
         if (whatsappWindow && !whatsappWindow.closed) whatsappWindow.close();
         showToast("Waktu pemesanan berakhir pukul 22.00. Silakan pesan kembali besok mulai 09.00.");
@@ -761,11 +770,7 @@
         data.get("notes") ? `Catatan: ${data.get("notes")}` : ""
       ].filter(Boolean).join("\n");
       const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-      if (whatsappWindow && !whatsappWindow.closed) {
-        whatsappWindow.location.href = whatsappUrl;
-      } else {
-        window.location.href = whatsappUrl;
-      }
+      window.location.assign(whatsappUrl);
     });
 
     document.getElementById("year").textContent = new Date().getFullYear();
