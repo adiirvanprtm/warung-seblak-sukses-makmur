@@ -54,7 +54,14 @@
     .brand { display: flex; align-items: center; text-decoration: none; color: inherit; }
     .brand-logo { display: block; width: 215px; height: auto; max-height: 68px; object-fit: contain; }
     .header-right { display: flex; align-items: center; gap: 14px; }
-    .open-label { color: var(--green); font-size: 13px; font-weight: 650; }
+    .open-label {
+      display: flex; align-items: center; gap: 5px; font-size: 15px; font-weight: 750;
+    }
+    .store-status-state, .store-status-hours, .store-status-order, .store-status-order-time { white-space: nowrap; }
+    .store-status-state.is-open, .store-status-order.is-open { color: var(--coffee-dark); }
+    .store-status-state.is-closed, .store-status-order.is-closing { color: #b42332; }
+    .store-status-hours, .store-status-order-time { color: #b42332; font-weight: 800; }
+    .store-status-order.is-closed { color: var(--coffee-dark); }
     .cart-jump {
       border: 0; border-radius: 999px; padding: 11px 17px; color: white; background: var(--coffee);
       font-size: 13px; font-weight: 400;
@@ -156,6 +163,14 @@
     .admin-product summary { padding: 13px 15px; cursor: pointer; font-size: 13px; font-weight: 750; }
     .admin-product-form { padding: 0 15px 15px; }
     .admin-product-form .form-field { margin-bottom: 10px; }
+    .admin-product-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+    .admin-delete-button {
+      border: 1px solid #b65050; border-radius: 999px; padding: 11px 16px;
+      color: #963b3b; background: white; font-family: var(--font-display); font-size: 12px;
+      letter-spacing: .45px;
+    }
+    .admin-delete-button:hover { background: #fff1f1; }
+    .admin-delete-button:focus-visible { outline: 3px solid #e6aaaa; outline-offset: 3px; }
 
     .order-section { display: grid; grid-template-columns: 1.15fr .85fr; gap: 22px; align-items: start; margin: 58px 0 70px; }
     .panel { background: var(--paper); border: 1px solid rgba(40, 94, 69, .09); border-radius: 20px; padding: 24px; box-shadow: var(--shadow); }
@@ -254,11 +269,12 @@
 
     @media (max-width: 760px) {
       .wrap { width: min(100% - 28px, 560px); }
-      header { height: 68px; }
-      .open-label { display: none; }
+      header { height: auto; min-height: 68px; flex-wrap: wrap; row-gap: 6px; padding: 6px 0; }
+      .header-right { display: contents; }
+      .open-label { display: flex; order: 2; flex: 0 0 100%; justify-content: center; font-size: 13px; }
       .brand-logo { width: 145px; }
-      .header-right { gap: 6px; }
       .header-left { gap: 5px; }
+      .cart-jump { order: 1; margin-left: auto; }
       .admin-menu-button { width: 34px; height: 34px; font-size: 22px; }
       .cart-label { display: none; }
       .cart-jump { padding: 9px 11px; font-size: 11px; }
@@ -296,7 +312,12 @@
     </a>
     </div>
     <div class="header-right">
-      <span id="store-status" class="open-label">● Buka 09.00–23.00 · Pesanan s/d 22.20</span>
+      <span id="store-status" class="open-label" role="status" aria-live="polite">
+        <span id="store-status-state" class="store-status-state is-open">● Buka</span>
+        <span id="store-status-hours" class="store-status-hours">09.00–23.00</span>
+        <span id="store-status-order" class="store-status-order is-open">· Pesanan s/d</span>
+        <span id="store-status-order-time" class="store-status-order-time">22.00</span>
+      </span>
       <button class="cart-jump" type="button" onclick="document.getElementById('order').scrollIntoView({behavior:'smooth'})">🛍️ <span class="cart-label">Keranjang</span> <span id="header-count">0</span></button>
     </div>
   </header>
@@ -1034,10 +1055,60 @@ Ngopi Makin Chill!</h1>
             <div class="form-field full">
               <label class="admin-check"><input name="temperature" type="checkbox" ${product.temperatureOptions ? "checked" : ""}> Produk minuman (pilihan Es/Panas)</label>
             </div>
-            <button class="admin-action" type="submit">Simpan perubahan</button>
+            <div class="admin-product-actions">
+              <button class="admin-action" type="submit">Simpan perubahan</button>
+              <button class="admin-delete-button" type="button" data-delete-product="${escapeHtml(product.id)}">Hapus menu</button>
+            </div>
           </form>
         </details>`).join("");
     }
+
+    adminProducts.addEventListener("click", async event => {
+      if (!(event.target instanceof Element)) return;
+      const button = event.target.closest("[data-delete-product]");
+      if (!(button instanceof HTMLButtonElement)) return;
+      if (!isSiteAdmin || !supabaseClient || !sharedDataReady) {
+        showToast("Masuk dengan akun admin untuk menghapus menu.");
+        return;
+      }
+
+      const productId = button.dataset.deleteProduct;
+      const productIndex = products.findIndex(product => product.id === productId);
+      if (productIndex === -1) {
+        showToast("Menu tidak ditemukan. Muat ulang halaman lalu coba lagi.");
+        return;
+      }
+      const product = products[productIndex];
+      if (!window.confirm(`Hapus menu "${product.name}"? Menu ini juga akan dihapus dari keranjang.`)) return;
+
+      button.disabled = true;
+      products.splice(productIndex, 1);
+      try {
+        await saveCatalog();
+      } catch (error) {
+        products.splice(productIndex, 0, product);
+        console.error("Menu gagal dihapus dari database.", error);
+        renderCatalogViews();
+        showToast("Menu gagal dihapus. Periksa koneksi admin lalu coba lagi.");
+        return;
+      }
+
+      Object.keys(cart)
+        .filter(cartKey => cartKey === productId || cartKey.startsWith(`${productId}|`))
+        .forEach(cartKey => delete cart[cartKey]);
+      let imageCleanupFailed = false;
+      try {
+        const { error } = await supabaseClient.from("site_images").delete().eq("id", productId);
+        if (error) throw error;
+      } catch (error) {
+        imageCleanupFailed = true;
+        console.error("Foto menu terhapus gagal dibersihkan dari database.", error);
+      }
+      renderCatalogViews();
+      showToast(imageCleanupFailed
+        ? `Menu ${product.name} dihapus, tetapi foto lama belum berhasil dibersihkan.`
+        : `${product.name} berhasil dihapus.`);
+    });
 
     function renderCatalogViews(openProductId = "") {
       refreshCategories();
@@ -1053,18 +1124,33 @@ Ngopi Makin Chill!</h1>
     }
 
     function updateOperatingStatus(cartCount, subtotal = cartSubtotal) {
-      const status = document.getElementById("store-status");
+      const stateLabel = document.getElementById("store-status-state");
+      const storeHours = document.getElementById("store-status-hours");
+      const orderLabel = document.getElementById("store-status-order");
+      const orderTime = document.getElementById("store-status-order-time");
       const now = new Date();
       const currentMinute = now.getHours() * 60 + now.getMinutes();
       if (currentMinute >= 9 * 60 && currentMinute < 22 * 60) {
-        status.textContent = "● Buka 09.00–23.00 · Order s/d 22.00";
-        status.style.color = "var(--green)";
+        stateLabel.textContent = "● Buka";
+        stateLabel.className = "store-status-state is-open";
+        storeHours.textContent = "09.00–23.00";
+        orderLabel.textContent = "· Pesanan s/d";
+        orderLabel.className = "store-status-order is-open";
+        orderTime.textContent = "22.00";
       } else if (currentMinute >= 22 * 60 && currentMinute < 23 * 60) {
-        status.textContent = "● Buka sampai 23.00 · Pesanan tutup";
-        status.style.color = "var(--muted)";
+        stateLabel.textContent = "● Buka";
+        stateLabel.className = "store-status-state is-open";
+        storeHours.textContent = "sampai 23.00";
+        orderLabel.textContent = "· Pesanan tutup";
+        orderLabel.className = "store-status-order is-closing";
+        orderTime.textContent = "";
       } else {
-        status.textContent = "● Tutup · Buka kembali 09.00";
-        status.style.color = "var(--muted)";
+        stateLabel.textContent = "● Tutup";
+        stateLabel.className = "store-status-state is-closed";
+        storeHours.textContent = "";
+        orderLabel.textContent = "· Buka kembali";
+        orderLabel.className = "store-status-order is-closed";
+        orderTime.textContent = "09.00";
       }
       const minimumOrderStatus = document.getElementById("minimum-order-status");
       if (subtotal < MINIMUM_ORDER_AMOUNT) {
@@ -1330,7 +1416,9 @@ Ngopi Makin Chill!</h1>
         "",
         "*DETAIL PENERIMA*",
         `Nama: ${data.get("name")}`,
+
         `No. WhatsApp: ${data.get("phone")}`,
+
         `Alamat: ${data.get("address")}`,
         gpsLocation ? `Lokasi Google Maps: ${gpsLocation.url}` : "Lokasi GPS tidak tersedia; gunakan alamat penerima.",
         gpsLocation ? `Perkiraan akurasi GPS: ±${gpsLocation.accuracy} meter` : "",
