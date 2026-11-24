@@ -218,6 +218,19 @@
     .payment-option input { flex: none; margin: 0; accent-color: var(--coffee); }
     .payment-option:focus-within { outline: 3px solid #8fc9a0; outline-offset: 2px; }
     .payment-note { margin: 7px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .qris-payment-panel {
+      display: grid; justify-items: start; gap: 8px; margin-top: 10px; padding: 12px;
+      border: 1px solid #b7d4be; border-radius: 12px; background: white;
+    }
+    .qris-payment-panel[hidden], .payment-proof-field[hidden] { display: none; }
+    .qris-code-image {
+      display: block; width: min(100%, 320px); max-height: 430px; object-fit: contain; object-position: top center;
+      border: 1px solid var(--line); border-radius: 10px; background: white;
+    }
+    .payment-proof-field { display: grid; gap: 6px; margin-top: 10px; }
+    .payment-proof-field label { color: #42584a; font-size: 12px; font-weight: 800; }
+    .payment-proof-status.is-warning { color: #a61b1b; font-weight: 750; }
+    .payment-proof-status.is-success { color: #236343; font-weight: 750; }
     .location-btn {
       width: 100%; display: flex; justify-content: center; gap: 7px; padding: 11px 12px; border: 0;
       border-radius: 9px; background: var(--coffee); color: white; font-family: var(--font-body);
@@ -481,7 +494,16 @@ Ngopi Makin Chill!</h1>
                   <span>QRIS</span>
                 </label>
               </div>
-              <p class="payment-note">Jika memilih QRIS, kedai akan mengirimkan QR atau petunjuk pembayaran melalui WhatsApp.</p>
+              <p id="payment-selection-note" class="payment-note">Pilih metode pembayaran. Kode QRIS dan kolom bukti akan muncul jika QRIS dipilih.</p>
+              <div id="qris-payment-panel" class="qris-payment-panel" hidden>
+                <p class="payment-note">Pindai QRIS ini untuk membayar. Setelah itu, unggah bukti transaksi.</p>
+                <img class="qris-code-image" src="qris-payment.jpeg" alt="Kode pembayaran QRIS Warung Seblak Sukses Makmur">
+              </div>
+              <div id="payment-proof-field" class="payment-proof-field" hidden>
+                <label for="payment-proof">Unggah bukti transaksi QRIS *</label>
+                <input id="payment-proof" class="field" type="file" name="paymentProof" accept="image/*" disabled>
+                <p id="payment-proof-status" class="payment-note payment-proof-status is-warning" role="status" aria-live="polite">⚠️ Bukti transaksi wajib dipilih untuk mengirim pesanan QRIS.</p>
+              </div>
             </fieldset>
             <div class="form-field full">
               <label for="customer-notes">Catatan untuk kedai (opsional)</label>
@@ -1373,6 +1395,72 @@ Ngopi Makin Chill!</h1>
       requestDeliveryLocation();
     });
 
+    const paymentMethodInputs = document.querySelectorAll('input[name="paymentMethod"]');
+    const paymentSelectionNote = document.getElementById("payment-selection-note");
+    const qrisPaymentPanel = document.getElementById("qris-payment-panel");
+    const paymentProofField = document.getElementById("payment-proof-field");
+    const paymentProofInput = document.getElementById("payment-proof");
+    const paymentProofStatus = document.getElementById("payment-proof-status");
+
+    function setPaymentProofStatus(message, tone) {
+      paymentProofStatus.textContent = message;
+      paymentProofStatus.classList.toggle("is-warning", tone === "warning");
+      paymentProofStatus.classList.toggle("is-success", tone === "success");
+    }
+
+    function updatePaymentMethodFields() {
+      const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked');
+      const isQris = selectedMethod && selectedMethod.value === "QRIS";
+      qrisPaymentPanel.hidden = !isQris;
+      paymentProofField.hidden = !isQris;
+      paymentProofInput.disabled = !isQris;
+      paymentProofInput.required = Boolean(isQris);
+
+      if (isQris) {
+        paymentSelectionNote.textContent = "Bayar dengan QRIS, lalu unggah bukti. Bukti akan dibagikan bersama pesanan melalui WhatsApp.";
+        if (paymentProofInput.files.length) {
+          setPaymentProofStatus(`Bukti siap dibagikan: ${paymentProofInput.files[0].name}`, "success");
+        } else {
+          setPaymentProofStatus("⚠️ Bukti transaksi QRIS wajib diunggah sebelum melanjutkan.", "warning");
+        }
+      } else if (selectedMethod) {
+        paymentSelectionNote.textContent = "Bayar tunai kepada kurir. Bukti transaksi tidak diperlukan.";
+        setPaymentProofStatus("", "");
+      } else {
+        paymentSelectionNote.textContent = "Pilih metode pembayaran. Kode QRIS dan kolom bukti akan muncul jika QRIS dipilih.";
+        setPaymentProofStatus("⚠️ Bukti transaksi wajib dipilih untuk mengirim pesanan QRIS.", "warning");
+      }
+    }
+
+    paymentMethodInputs.forEach(input => input.addEventListener("change", updatePaymentMethodFields));
+    updatePaymentMethodFields();
+
+    paymentProofInput.addEventListener("change", () => {
+      const file = paymentProofInput.files[0];
+      if (!file) {
+        setPaymentProofStatus("⚠️ Bukti transaksi QRIS wajib diunggah sebelum melanjutkan.", "warning");
+        return;
+      }
+      if (!file.type.startsWith("image/")) {
+        paymentProofInput.value = "";
+        setPaymentProofStatus("Pilih file gambar untuk bukti transaksi.", "warning");
+        showToast("Bukti transaksi harus berupa gambar.");
+        return;
+      }
+      if (file.size > 12 * 1024 * 1024) {
+        paymentProofInput.value = "";
+        setPaymentProofStatus("Ukuran gambar bukti maksimal 12 MB.", "warning");
+        showToast("Ukuran bukti transaksi maksimal 12 MB.");
+        return;
+      }
+      setPaymentProofStatus(`Bukti siap dibagikan: ${file.name}`, "success");
+    });
+
+    paymentProofInput.addEventListener("invalid", () => {
+      setPaymentProofStatus("⚠️ Unggah bukti transaksi QRIS terlebih dahulu.", "warning");
+      showToast("Unggah bukti transaksi QRIS sebelum melanjutkan.");
+    });
+
     document.getElementById("checkout-form").addEventListener("submit", async event => {
       event.preventDefault();
       if (!isOrderOpen()) {
@@ -1397,23 +1485,48 @@ Ngopi Makin Chill!</h1>
         return;
       }
       const data = new FormData(event.currentTarget);
+      const paymentMethod = String(data.get("paymentMethod") || "");
+      const paymentProof = paymentMethod === "QRIS" ? paymentProofInput.files[0] : null;
+      if (paymentMethod === "QRIS" && !paymentProof) {
+        setPaymentProofStatus("⚠️ Unggah bukti transaksi QRIS terlebih dahulu.", "warning");
+        paymentProofInput.reportValidity();
+        return;
+      }
+      if (paymentProof && (!paymentProof.type.startsWith("image/") || paymentProof.size > 12 * 1024 * 1024)) {
+        setPaymentProofStatus("Pilih gambar bukti transaksi dengan ukuran maksimal 12 MB.", "warning");
+        showToast("Bukti harus berupa gambar maksimal 12 MB.");
+        return;
+      }
+
+      let canSharePaymentProof = false;
+      if (paymentProof && typeof navigator.share === "function" && typeof navigator.canShare === "function") {
+        try {
+          canSharePaymentProof = navigator.canShare({ files: [paymentProof] });
+        } catch (error) {
+          console.error("Pemeriksaan dukungan berbagi bukti QRIS gagal.", error);
+        }
+      }
       showToast("Menyiapkan pesanan WhatsApp...");
       let gpsLocation = null;
-      try {
-        gpsLocation = await requestDeliveryLocation();
-      } catch (error) {
-        console.error("Lokasi GPS gagal diambil saat checkout.", error);
-        const locationStatus = document.getElementById("location-status");
-        locationStatus.classList.add("is-warning");
-        locationStatus.classList.remove("is-success");
-        locationStatus.textContent = "Lokasi GPS gagal diambil. Pesanan akan memakai alamat yang kamu isi.";
-        locationUrl = "";
-        locationAccuracy = null;
-        deliveryDistanceKm = null;
-        deliveryFee = null;
-        deliveryCalculationStatus = "idle";
-        renderCart();
-        showToast("GPS gagal diambil; pesanan tetap dikirim dengan alamat tertulis.");
+      if (canSharePaymentProof) {
+        if (locationUrl) gpsLocation = { url: locationUrl, accuracy: locationAccuracy };
+      } else {
+        try {
+          gpsLocation = await requestDeliveryLocation();
+        } catch (error) {
+          console.error("Lokasi GPS gagal diambil saat checkout.", error);
+          const locationStatus = document.getElementById("location-status");
+          locationStatus.classList.add("is-warning");
+          locationStatus.classList.remove("is-success");
+          locationStatus.textContent = "Lokasi GPS gagal diambil. Pesanan akan memakai alamat yang kamu isi.";
+          locationUrl = "";
+          locationAccuracy = null;
+          deliveryDistanceKm = null;
+          deliveryFee = null;
+          deliveryCalculationStatus = "idle";
+          renderCart();
+          showToast("GPS gagal diambil; pesanan tetap dikirim dengan alamat tertulis.");
+        }
       }
       if (!isOrderOpen()) {
         if (whatsappWindow && !whatsappWindow.closed) whatsappWindow.close();
@@ -1442,7 +1555,8 @@ Ngopi Makin Chill!</h1>
           ? `*Ongkir (${distanceLabel} km):* ${deliveryFee === 0 ? "GRATIS" : formatRupiah(deliveryFee)}`
           : "*Ongkir:* belum dapat dihitung otomatis, mohon konfirmasi",
         `*Total sementara:* ${formatRupiah(subtotal + deliveryTotal)}${hasDeliveryQuote ? "" : " (belum termasuk ongkir)"}`,
-        `*Metode pembayaran:* ${data.get("paymentMethod")}`,
+        `*Metode pembayaran:* ${paymentMethod}`,
+        paymentMethod === "QRIS" ? "*Bukti QRIS:* Terlampir" : "",
         "",
         "*DETAIL PENERIMA*",
         `Nama: ${data.get("name")}`,
@@ -1455,6 +1569,26 @@ Ngopi Makin Chill!</h1>
         data.get("notes") ? `Catatan: ${data.get("notes")}` : ""
       ].filter(Boolean).join("\n");
       const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+      if (paymentProof && canSharePaymentProof) {
+        try {
+          await navigator.share({
+            files: [paymentProof],
+            title: "Pesanan Warung Seblak Sukses Makmur",
+            text: message
+          });
+          showToast("Pilih WhatsApp dan kirim pesanan beserta bukti QRIS.");
+          return;
+        } catch (error) {
+          if (error.name === "AbortError") {
+            showToast("Berbagi dibatalkan. Pesanan belum terkirim.");
+            return;
+          }
+          console.error("Pengiriman bukti QRIS lewat menu berbagi gagal.", error);
+          if (!window.confirm("Bukti tidak dapat dibagikan otomatis. Setelah WhatsApp terbuka, lampirkan foto bukti yang dipilih sebelum mengirim. Lanjutkan?")) return;
+        }
+      } else if (paymentProof) {
+        if (!window.confirm("Browser ini tidak dapat melampirkan bukti otomatis. Setelah WhatsApp terbuka, lampirkan foto bukti QRIS yang dipilih sebelum mengirim. Lanjutkan?")) return;
+      }
       window.location.assign(whatsappUrl);
     });
 
