@@ -204,6 +204,20 @@
       padding: 0 6px; color: var(--coffee-dark); font-size: 13px; font-weight: 800;
     }
     .location-share-copy { margin: 0 0 8px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .payment-methods {
+      min-width: 0; margin: 0; padding: 10px 12px 12px; border: 1px solid #b7d4be;
+      border-radius: 12px; background: #f1f8f2;
+    }
+    .payment-methods legend { padding: 0 6px; color: var(--coffee-dark); font-size: 13px; font-weight: 800; }
+    .payment-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .payment-option {
+      display: flex; align-items: center; gap: 9px; min-height: 46px; margin: 0; padding: 9px 11px;
+      border: 1px solid var(--line); border-radius: 10px; background: white; color: var(--ink);
+      font-size: 13px; font-weight: 750; cursor: pointer;
+    }
+    .payment-option input { flex: none; margin: 0; accent-color: var(--coffee); }
+    .payment-option:focus-within { outline: 3px solid #8fc9a0; outline-offset: 2px; }
+    .payment-note { margin: 7px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
     .location-btn {
       width: 100%; display: flex; justify-content: center; gap: 7px; padding: 11px 12px; border: 0;
       border-radius: 9px; background: var(--coffee); color: white; font-family: var(--font-body);
@@ -300,6 +314,7 @@
       .product-image { height: 100%; }
       .form-grid { grid-template-columns: 1fr; }
       .form-field.full { grid-column: auto; }
+      .payment-options { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -454,6 +469,20 @@ Ngopi Makin Chill!</h1>
                 <p id="location-status" class="location-status is-warning" role="status" aria-live="polite">⚠️ Shareloc belum dibagikan. Tekan tombol di atas untuk membagikan lokasi.</p>
               </fieldset>
             </div>
+            <fieldset class="form-field full payment-methods">
+              <legend>Metode pembayaran *</legend>
+              <div class="payment-options">
+                <label class="payment-option">
+                  <input type="radio" name="paymentMethod" value="Cash" required>
+                  <span>Cash / Tunai</span>
+                </label>
+                <label class="payment-option">
+                  <input type="radio" name="paymentMethod" value="QRIS" required>
+                  <span>QRIS</span>
+                </label>
+              </div>
+              <p class="payment-note">Jika memilih QRIS, kedai akan mengirimkan QR atau petunjuk pembayaran melalui WhatsApp.</p>
+            </fieldset>
             <div class="form-field full">
               <label for="customer-notes">Catatan untuk kedai (opsional)</label>
               <textarea class="field" id="customer-notes" name="notes" placeholder="Contoh: less ice, gula dipisah..."></textarea>
@@ -1413,6 +1442,7 @@ Ngopi Makin Chill!</h1>
           ? `*Ongkir (${distanceLabel} km):* ${deliveryFee === 0 ? "GRATIS" : formatRupiah(deliveryFee)}`
           : "*Ongkir:* belum dapat dihitung otomatis, mohon konfirmasi",
         `*Total sementara:* ${formatRupiah(subtotal + deliveryTotal)}${hasDeliveryQuote ? "" : " (belum termasuk ongkir)"}`,
+        `*Metode pembayaran:* ${data.get("paymentMethod")}`,
         "",
         "*DETAIL PENERIMA*",
         `Nama: ${data.get("name")}`,
