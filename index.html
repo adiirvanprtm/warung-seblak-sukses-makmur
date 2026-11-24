@@ -166,8 +166,14 @@
     }
     .admin-reorder-form .form-field { margin: 0; }
     .admin-reorder-form .admin-action { margin: 0; }
-    .admin-product-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 8px; }
+    .admin-bulk-reorder-form { grid-template-columns: minmax(0, 1fr) auto; }
+    .admin-reorder-heading, .admin-bulk-help { grid-column: 1 / -1; margin: 0; }
+    .admin-reorder-heading { display: flex; justify-content: space-between; gap: 10px; color: var(--ink); font-size: 12px; }
+    .admin-bulk-count { color: var(--muted); font-weight: 500; }
+    .admin-product-row { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: start; gap: 8px; }
     .admin-product-order { display: grid; gap: 4px; }
+    .admin-product-select { display: flex; justify-content: center; padding-top: 8px; }
+    .admin-product-select input { width: 17px; height: 17px; accent-color: var(--coffee); }
     .admin-order-button {
       width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 9px;
       color: var(--coffee); background: white; font-size: 16px; font-weight: 800;
@@ -342,6 +348,7 @@
       .panel { padding: 20px; }
       .admin-reorder-form { grid-template-columns: minmax(0, 1fr) 90px; }
       .admin-reorder-form .admin-action { grid-column: 1 / -1; }
+      .admin-bulk-reorder-form { grid-template-columns: minmax(0, 1fr) 90px; }
     }
     @media (max-width: 360px) {
       .menu-grid { grid-template-columns: 1fr; }
@@ -463,7 +470,7 @@ Ngopi Makin Chill!</h1>
         </div>
         <button class="admin-action" type="submit">＋ Tambah produk</button>
       </form>
-      <p class="panel-sub admin-sort-help">Cara cepat: pilih menu dan nomor urutan. Anda juga bisa menyeret ikon ⠿ atau menggunakan tombol ↑/↓.</p>
+      <p class="panel-sub admin-sort-help">Centang beberapa menu untuk memindahkannya sekaligus; urutan antar menu terpilih tetap dipertahankan. Untuk satu menu, gunakan pilihan cepat atau seret ikon ⠿.</p>
       <div id="admin-products" class="admin-products"></div>
     </section>
 
@@ -1101,10 +1108,27 @@ Ngopi Makin Chill!</h1>
       }
     });
 
+    const selectedProductIds = new Set();
+
     function renderAdminPanel(openProductId = "") {
       const selectedProductIndex = products.findIndex(product => product.id === openProductId);
       const selectedProductId = selectedProductIndex >= 0 ? openProductId : products[0]?.id || "";
       const selectedPosition = Math.max(1, selectedProductIndex + 1);
+      const bulkReorderForm = products.length ? `
+        <form id="bulk-reorder-form" class="admin-reorder-form admin-bulk-reorder-form">
+          <div class="admin-reorder-heading">
+            <strong>Urutkan beberapa menu</strong>
+            <span id="bulk-reorder-count" class="admin-bulk-count" aria-live="polite">0 menu dipilih</span>
+          </div>
+          <div class="form-field">
+            <label for="bulk-reorder-position">Posisi awal grup</label>
+            <select class="field" id="bulk-reorder-position" name="position" disabled required>
+              <option value="">Pilih menu dahulu</option>
+            </select>
+          </div>
+          <button class="admin-action" type="submit" data-bulk-submit disabled>Pindahkan pilihan</button>
+          <p class="panel-sub admin-bulk-help">Centang menu di daftar. Menu akan dipindahkan bersama mulai dari posisi yang dipilih.</p>
+        </form>` : "";
       const quickReorderForm = products.length ? `
         <form id="quick-reorder-form" class="admin-reorder-form">
           <div class="form-field">
@@ -1126,8 +1150,11 @@ Ngopi Makin Chill!</h1>
           </div>
           <button class="admin-action" type="submit">↕ Pindahkan</button>
         </form>` : '<p class="panel-sub">Belum ada menu untuk diurutkan.</p>';
-      adminProducts.innerHTML = `${quickReorderForm}${products.map((product, index) => `
+      adminProducts.innerHTML = `${bulkReorderForm}${quickReorderForm}${products.map((product, index) => `
         <div class="admin-product-row">
+          <label class="admin-product-select">
+            <input type="checkbox" data-select-product="${escapeHtml(product.id)}" aria-label="Pilih ${escapeHtml(product.name)}" ${selectedProductIds.has(product.id) ? "checked" : ""}>
+          </label>
           <div class="admin-product-order" aria-label="Atur urutan ${escapeHtml(product.name)}">
             <button class="admin-order-button" type="button" data-move-product="${escapeHtml(product.id)}" data-direction="up" aria-label="Naikkan ${escapeHtml(product.name)}" ${index === 0 ? "disabled" : ""}>↑</button>
             <button class="admin-order-button" type="button" data-move-product="${escapeHtml(product.id)}" data-direction="down" aria-label="Turunkan ${escapeHtml(product.name)}" ${index === products.length - 1 ? "disabled" : ""}>↓</button>
@@ -1165,10 +1192,42 @@ Ngopi Makin Chill!</h1>
             </form>
           </details>
         </div>`).join("")}`;
+      updateBulkReorderControls();
     }
 
     let isSavingProductOrder = false;
     let draggedProductId = "";
+
+    function updateBulkReorderControls() {
+      const availableIds = new Set(products.map(product => product.id));
+      selectedProductIds.forEach(productId => {
+        if (!availableIds.has(productId)) selectedProductIds.delete(productId);
+      });
+      const selectedCount = products.filter(product => selectedProductIds.has(product.id)).length;
+      const countLabel = adminProducts.querySelector("#bulk-reorder-count");
+      const positionSelect = adminProducts.querySelector("#bulk-reorder-position");
+      const submitButton = adminProducts.querySelector("[data-bulk-submit]");
+      if (!(countLabel instanceof HTMLElement) || !(positionSelect instanceof HTMLSelectElement) ||
+        !(submitButton instanceof HTMLButtonElement)) return;
+
+      const previousPosition = Number(positionSelect.value);
+      const lastStartPosition = products.length - selectedCount + 1;
+      positionSelect.innerHTML = selectedCount
+        ? Array.from({ length: lastStartPosition }, (_, index) => {
+          const position = index + 1;
+          const label = position === 1 ? `${position} — Paling atas` :
+            position === lastStartPosition ? `${position} — Paling bawah` : String(position);
+          return `<option value="${position}">${label}</option>`;
+        }).join("")
+        : '<option value="">Pilih menu dahulu</option>';
+      positionSelect.disabled = selectedCount === 0;
+      submitButton.disabled = selectedCount === 0;
+      submitButton.textContent = selectedCount ? `Pindahkan ${selectedCount} menu` : "Pindahkan pilihan";
+      countLabel.textContent = `${selectedCount} menu dipilih`;
+      if (selectedCount) {
+        positionSelect.value = String(previousPosition >= 1 && previousPosition <= lastStartPosition ? previousPosition : 1);
+      }
+    }
 
     async function moveProductToIndex(productId, destinationIndex) {
       if (!isSiteAdmin || !supabaseClient || !sharedDataReady) {
@@ -1199,6 +1258,54 @@ Ngopi Makin Chill!</h1>
       showToast("Urutan menu berhasil disimpan.");
     }
 
+    async function moveSelectedProductsToIndex(startPosition) {
+      if (!isSiteAdmin || !supabaseClient || !sharedDataReady) {
+        showToast("Masuk dengan akun admin untuk mengurutkan menu.");
+        return;
+      }
+      if (isSavingProductOrder) return;
+      const selectedProducts = products.filter(product => selectedProductIds.has(product.id));
+      const lastStartPosition = products.length - selectedProducts.length + 1;
+      if (!selectedProducts.length || !Number.isInteger(startPosition) ||
+        startPosition < 1 || startPosition > lastStartPosition) {
+        showToast("Pilih menu dan posisi awal yang valid.");
+        return;
+      }
+
+      const selectedIds = new Set(selectedProducts.map(product => product.id));
+      const remainingProducts = products.filter(product => !selectedIds.has(product.id));
+      const nextOrder = [
+        ...remainingProducts.slice(0, startPosition - 1),
+        ...selectedProducts,
+        ...remainingProducts.slice(startPosition - 1)
+      ];
+      if (nextOrder.every((product, index) => product.id === products[index].id)) {
+        showToast("Menu terpilih sudah berada di posisi tersebut.");
+        return;
+      }
+
+      const previousOrder = products.slice();
+      products.splice(0, products.length, ...nextOrder);
+      isSavingProductOrder = true;
+      adminProducts.querySelectorAll(
+        "[data-move-product], [data-select-product], [data-bulk-submit], #quick-reorder-form button, #quick-reorder-product, #quick-reorder-position, #bulk-reorder-position"
+      ).forEach(control => { control.disabled = true; });
+      try {
+        await saveCatalog();
+      } catch (error) {
+        products.splice(0, products.length, ...previousOrder);
+        console.error("Urutan menu pilihan gagal disimpan ke database.", error);
+        renderCatalogViews(selectedProducts[0].id);
+        showToast("Urutan menu gagal disimpan. Periksa koneksi admin lalu coba lagi.");
+        return;
+      } finally {
+        isSavingProductOrder = false;
+      }
+      selectedProductIds.clear();
+      renderCatalogViews(selectedProducts[0].id);
+      showToast(`${selectedProducts.length} menu berhasil diurutkan.`);
+    }
+
     function clearProductDragState() {
       draggedProductId = "";
       adminProducts.querySelectorAll(".admin-product").forEach(item =>
@@ -1207,6 +1314,12 @@ Ngopi Makin Chill!</h1>
     }
 
     adminProducts.addEventListener("change", event => {
+      if (event.target instanceof HTMLInputElement && event.target.dataset.selectProduct) {
+        if (event.target.checked) selectedProductIds.add(event.target.dataset.selectProduct);
+        else selectedProductIds.delete(event.target.dataset.selectProduct);
+        updateBulkReorderControls();
+        return;
+      }
       if (!(event.target instanceof HTMLSelectElement) || event.target.id !== "quick-reorder-product") return;
       const positionInput = adminProducts.querySelector("#quick-reorder-position");
       if (!(positionInput instanceof HTMLSelectElement)) return;
@@ -1893,6 +2006,11 @@ Ngopi Makin Chill!</h1>
           console.error("Teks promosi gagal disimpan ke database.", error);
           showToast("Teks promosi gagal disimpan. Periksa koneksi admin lalu coba lagi.");
         }
+        return;
+      }
+      if (form.id === "bulk-reorder-form") {
+        const startPosition = Number(formData.get("position"));
+        await moveSelectedProductsToIndex(startPosition);
         return;
       }
       if (form.id === "quick-reorder-form") {
