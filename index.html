@@ -849,7 +849,9 @@ Ngopi Makin Chill!</h1>
       const deliveryFeeLabel = document.getElementById("delivery-fee");
       if (deliveryFee !== null && deliveryDistanceKm !== null) {
         const distanceLabel = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(deliveryDistanceKm);
-        deliveryFeeLabel.textContent = `${formatRupiah(deliveryFee)} · ${distanceLabel} km`;
+        deliveryFeeLabel.textContent = deliveryFee === 0
+          ? `Ongkir GRATIS · ${distanceLabel} km`
+          : `${formatRupiah(deliveryFee)} · ${distanceLabel} km`;
       } else if (deliveryCalculationStatus === "locating") {
         deliveryFeeLabel.textContent = "Mengambil lokasi GPS...";
       } else if (deliveryCalculationStatus === "loading") {
@@ -973,7 +975,8 @@ Ngopi Makin Chill!</h1>
               deliveryFee = fee;
               deliveryCalculationStatus = "ready";
               const distanceLabel = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(distanceKm);
-              status.innerHTML = `Jarak rute ${distanceLabel} km · ongkir ${formatRupiah(fee)} (akurasi GPS ±${locationAccuracy} m): <a href="${locationUrl}" target="_blank" rel="noopener">lihat lokasi</a>`;
+              const feeLabel = fee === 0 ? "GRATIS" : formatRupiah(fee);
+              status.innerHTML = `Jarak rute ${distanceLabel} km · ongkir ${feeLabel} (akurasi GPS ±${locationAccuracy} m): <a href="${locationUrl}" target="_blank" rel="noopener">lihat lokasi</a>`;
               renderCart();
               resolve({ url: locationUrl, accuracy: locationAccuracy, distanceKm, fee });
             }).catch(error => {
@@ -1070,7 +1073,7 @@ Ngopi Makin Chill!</h1>
         "",
         `*Subtotal:* ${formatRupiah(subtotal)}`,
         hasDeliveryQuote
-          ? `*Ongkir (${distanceLabel} km):* ${formatRupiah(deliveryFee)}`
+          ? `*Ongkir (${distanceLabel} km):* ${deliveryFee === 0 ? "GRATIS" : formatRupiah(deliveryFee)}`
           : "*Ongkir:* belum dapat dihitung otomatis, mohon konfirmasi",
         `*Total sementara:* ${formatRupiah(subtotal + deliveryTotal)}${hasDeliveryQuote ? "" : " (belum termasuk ongkir)"}`,
         "",
