@@ -279,7 +279,7 @@
         </div>
         <div class="form-field">
           <label for="new-product-price">Harga (Rp) *</label>
-          <input class="field" id="new-product-price" name="price" type="number" min="1" step="500" required placeholder="Contoh: 10000">
+          <input class="field" id="new-product-price" name="price" type="number" min="1" step="1" required placeholder="Contoh: 10000">
         </div>
         <div class="form-field">
           <label for="new-product-category">Kategori *</label>
@@ -584,7 +584,7 @@
             </div>
             <div class="form-field">
               <label for="edit-price-${escapeHtml(product.id)}">Harga (Rp)</label>
-              <input class="field" id="edit-price-${escapeHtml(product.id)}" name="price" type="number" min="1" step="500" required value="${product.price}">
+              <input class="field" id="edit-price-${escapeHtml(product.id)}" name="price" type="number" min="1" step="1" required value="${product.price}">
             </div>
             <div class="form-field">
               <label for="edit-category-${escapeHtml(product.id)}">Kategori</label>
