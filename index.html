@@ -1127,7 +1127,7 @@ Ngopi Makin Chill!</h1>
             </select>
           </div>
           <button class="admin-action" type="submit" data-bulk-submit disabled>Pindahkan pilihan</button>
-          <p class="panel-sub admin-bulk-help">Centang menu di daftar. Menu akan dipindahkan bersama mulai dari posisi yang dipilih.</p>
+          <p class="panel-sub admin-bulk-help">Menu dipindahkan sesuai urutan Anda mencentangnya; centangan pertama menjadi menu pertama.</p>
         </form>` : "";
       const quickReorderForm = products.length ? `
         <form id="quick-reorder-form" class="admin-reorder-form">
@@ -1264,7 +1264,9 @@ Ngopi Makin Chill!</h1>
         return;
       }
       if (isSavingProductOrder) return;
-      const selectedProducts = products.filter(product => selectedProductIds.has(product.id));
+      const productsById = new Map(products.map(product => [product.id, product]));
+      const selectedProducts = Array.from(selectedProductIds, productId => productsById.get(productId))
+        .filter(product => product);
       const lastStartPosition = products.length - selectedProducts.length + 1;
       if (!selectedProducts.length || !Number.isInteger(startPosition) ||
         startPosition < 1 || startPosition > lastStartPosition) {
