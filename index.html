@@ -114,6 +114,13 @@
     }
     .filter.active { color: white; background: var(--coffee); border-color: var(--coffee); }
     .menu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .menu-category-section { grid-column: 1 / -1; min-width: 0; }
+    .menu-category-section + .menu-category-section { margin-top: 18px; }
+    .menu-category-title {
+      margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--line);
+      color: var(--coffee-dark); font-family: var(--font-display); font-size: 27px; letter-spacing: .5px;
+    }
+    .menu-category-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
     .product {
       display: flex; flex-direction: column; background: var(--paper); border: 1px solid rgba(40, 94, 69, .09);
       border-radius: 18px; overflow: hidden; box-shadow: 0 5px 18px rgba(36, 76, 52, .045);
@@ -143,7 +150,7 @@
     .price { font-weight: 800; font-size: 15px; }
     .add-btn { border: 0; background: var(--coffee); color: white; padding: 9px 13px; border-radius: 999px; font-size: 12px; font-weight: 400; }
     .add-btn:hover, .cart-jump:hover { background: var(--coffee-dark); }
-    .empty-menu { color: var(--muted); padding: 30px 0; }
+    .empty-menu { grid-column: 1 / -1; color: var(--muted); padding: 30px 0; }
 
     .admin-panel {
       display: none; margin: 30px 0 0; padding: 24px; border: 1px solid var(--line);
@@ -336,6 +343,9 @@
       .section-heading { align-items: start; flex-direction: column; }
       .search { width: 100%; }
       .menu-grid { grid-template-columns: repeat(2, 1fr); gap: 11px; }
+      .menu-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+      .menu-category-title { margin-bottom: 12px; font-size: 23px; }
+      .menu-category-section + .menu-category-section { margin-top: 14px; }
       .product-image-wrap { height: 135px; }
       .product-image { height: 100%; }
       .product-content { padding: 12px; }
@@ -352,6 +362,7 @@
     }
     @media (max-width: 360px) {
       .menu-grid { grid-template-columns: 1fr; }
+      .menu-category-grid { grid-template-columns: 1fr; }
       .product-image-wrap { height: 180px; }
       .product-image { height: 100%; }
       .form-grid { grid-template-columns: 1fr; }
@@ -975,17 +986,8 @@ Ngopi Makin Chill!</h1>
       });
     }
 
-    function renderMenu() {
-      const query = document.getElementById("search").value.trim().toLocaleLowerCase("id");
-      const shown = products.filter(product =>
-        (activeCategory === "Semua" || product.category === activeCategory) &&
-        (product.name.toLocaleLowerCase("id").includes(query) || product.description.toLocaleLowerCase("id").includes(query))
-      );
-      if (!shown.length) {
-        menuGrid.innerHTML = '<p class="empty-menu">Menu tidak ditemukan. Coba kata kunci lain.</p>';
-        return;
-      }
-      menuGrid.innerHTML = shown.map(product => `
+    function renderProductCard(product) {
+      return `
         <article class="product">
           <div class="product-image-wrap">
             <img class="product-image" src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" loading="lazy">
@@ -1005,7 +1007,32 @@ Ngopi Makin Chill!</h1>
               <button class="add-btn" type="button" data-add="${escapeHtml(product.id)}">＋ Tambah</button>
             </div>
           </div>
-        </article>`).join("");
+        </article>`;
+    }
+
+    function renderMenu() {
+      const query = document.getElementById("search").value.trim().toLocaleLowerCase("id");
+      const shown = products.filter(product =>
+        (activeCategory === "Semua" || product.category === activeCategory) &&
+        (product.name.toLocaleLowerCase("id").includes(query) || product.description.toLocaleLowerCase("id").includes(query))
+      );
+      if (!shown.length) {
+        menuGrid.innerHTML = '<p class="empty-menu">Menu tidak ditemukan. Coba kata kunci lain.</p>';
+        return;
+      }
+      if (activeCategory === "Semua") {
+        const groups = categories.slice(1).map(category => ({
+          category,
+          products: shown.filter(product => product.category === category)
+        })).filter(group => group.products.length);
+        menuGrid.innerHTML = groups.map(group => `
+          <section class="menu-category-section" aria-label="Kategori ${escapeHtml(group.category)}">
+            <h3 class="menu-category-title">${escapeHtml(group.category)}</h3>
+            <div class="menu-category-grid">${group.products.map(renderProductCard).join("")}</div>
+          </section>`).join("");
+      } else {
+        menuGrid.innerHTML = shown.map(renderProductCard).join("");
+      }
       menuGrid.querySelectorAll("[data-image]").forEach(input => {
         input.addEventListener("change", async () => {
           const file = input.files[0];
