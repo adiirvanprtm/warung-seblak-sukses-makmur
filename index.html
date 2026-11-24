@@ -50,6 +50,7 @@
       justify-content: space-between;
       border-bottom: 1px solid rgba(40, 94, 69, .14);
     }
+    .header-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
     .brand { display: flex; align-items: center; text-decoration: none; color: inherit; }
     .brand-logo { display: block; width: 215px; height: auto; max-height: 68px; object-fit: contain; }
     .header-right { display: flex; align-items: center; gap: 14px; }
@@ -58,13 +59,14 @@
       border: 0; border-radius: 999px; padding: 11px 17px; color: white; background: var(--coffee);
       font-size: 13px; font-weight: 400;
     }
-    .admin-toggle {
-      border: 1px solid var(--line); border-radius: 999px; padding: 10px 13px;
-      color: var(--coffee); background: transparent; font-size: 12px; font-weight: 700;
+    .admin-menu-button {
+      display: grid; place-items: center; flex: none; width: 38px; height: 38px; padding: 0;
+      border: 1px solid var(--line); border-radius: 50%; color: var(--coffee); background: transparent;
+      font-family: var(--font-body); font-size: 24px; font-weight: 800; line-height: 1;
     }
-    .admin-toggle:hover { background: rgba(40, 94, 69, .08); }
-    .admin-icon { display: none; }
-    .open-label, .cart-jump, .admin-toggle, .hero-cta, .filter, .badge, .add-btn,
+    .admin-menu-button:hover { background: rgba(40, 94, 69, .08); }
+    .admin-menu-button:focus-visible { outline: 3px solid #8fc9a0; outline-offset: 3px; }
+    .open-label, .cart-jump, .hero-cta, .filter, .badge, .add-btn,
     .admin-action, .location-btn, .whatsapp-btn {
       font-family: var(--font-display);
       letter-spacing: .45px;
@@ -215,6 +217,40 @@
       opacity: 0; pointer-events: none; transition: .2s ease;
     }
     .toast.show { transform: translate(-50%, 0); opacity: 1; }
+    .admin-login-dialog {
+      width: min(390px, calc(100% - 28px)); padding: 22px; border: 1px solid var(--line);
+      border-radius: 18px; color: var(--ink); background: var(--paper); box-shadow: var(--shadow);
+    }
+    .admin-login-dialog::backdrop { background: rgba(15, 35, 23, .68); }
+    .admin-login-dialog h2 { margin: 0 0 5px; font-family: var(--font-display); font-size: 25px; }
+    .admin-login-dialog p { margin: 0 0 16px; color: var(--muted); font-size: 12px; }
+    .admin-login-actions { display: flex; justify-content: flex-end; gap: 9px; }
+    .admin-login-actions button {
+      border: 1px solid var(--line); border-radius: 999px; padding: 10px 15px;
+      color: var(--coffee); background: white; font-size: 12px; font-weight: 750;
+    }
+    .admin-login-actions .admin-login-submit { border-color: var(--coffee); color: white; background: var(--coffee); }
+    .image-editor {
+      width: min(520px, calc(100% - 28px)); padding: 22px; border: 1px solid var(--line);
+      border-radius: 18px; color: var(--ink); background: var(--paper); box-shadow: var(--shadow);
+    }
+    .image-editor::backdrop { background: rgba(15, 35, 23, .68); }
+    .image-editor h2 { margin: 0 0 5px; font-family: var(--font-display); font-size: 25px; }
+    .image-editor-help { margin: 0 0 15px; color: var(--muted); font-size: 12px; }
+    .image-editor-preview {
+      display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 10px;
+      background: #dceade; object-fit: contain;
+    }
+    .image-editor-controls { display: grid; gap: 12px; margin: 16px 0; }
+    .image-editor-control { display: grid; grid-template-columns: 105px 1fr; align-items: center; gap: 10px; }
+    .image-editor-control label { color: #42584a; font-size: 12px; font-weight: 700; }
+    .image-editor-control input { width: 100%; accent-color: var(--green); }
+    .image-editor-actions { display: flex; justify-content: flex-end; gap: 9px; }
+    .image-editor-actions button {
+      border: 1px solid var(--line); border-radius: 999px; padding: 10px 15px;
+      color: var(--coffee); background: white; font-size: 12px; font-weight: 750;
+    }
+    .image-editor-actions .image-editor-apply { border-color: var(--coffee); color: white; background: var(--coffee); }
 
     @media (max-width: 760px) {
       .wrap { width: min(100% - 28px, 560px); }
@@ -222,9 +258,8 @@
       .open-label { display: none; }
       .brand-logo { width: 145px; }
       .header-right { gap: 6px; }
-      .admin-toggle { padding: 9px; }
-      .admin-full { display: none; }
-      .admin-icon { display: inline; }
+      .header-left { gap: 5px; }
+      .admin-menu-button { width: 34px; height: 34px; font-size: 22px; }
       .cart-label { display: none; }
       .cart-jump { padding: 9px 11px; font-size: 11px; }
       .hero { min-height: 340px; margin: 20px 0 38px; padding: 34px 26px; }
@@ -254,12 +289,14 @@
 </head>
 <body>
   <header class="wrap">
-    <a class="brand" href="#" aria-label="Warung Seblak Sukses Makmur beranda">
+    <div class="header-left">
+      <button id="admin-toggle" class="admin-menu-button" type="button" aria-label="Masuk admin" aria-pressed="false" title="Menu">⋮</button>
+      <a class="brand" href="#" aria-label="Warung Seblak Sukses Makmur beranda">
       <img class="brand-logo" src="data:image/png;base64,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" alt="Logo Warung Seblak Sukses Makmur">
     </a>
+    </div>
     <div class="header-right">
       <span id="store-status" class="open-label">● Buka 09.00–23.00 · Pesanan s/d 22.20</span>
-      <button id="admin-toggle" class="admin-toggle" type="button" aria-label="Mode pengelola" aria-pressed="false"><span class="admin-full">🔒 Admin</span><span class="admin-icon" aria-hidden="true">🔒</span></button>
       <button class="cart-jump" type="button" onclick="document.getElementById('order').scrollIntoView({behavior:'smooth'})">🛍️ <span class="cart-label">Keranjang</span> <span id="header-count">0</span></button>
     </div>
   </header>
@@ -289,7 +326,7 @@ Ngopi Makin Chill!</h1>
 
     <section id="admin-panel" class="admin-panel" aria-labelledby="admin-title">
       <h2 id="admin-title">Kelola katalog</h2>
-      <p class="panel-sub">Ubah teks promosi, logo, background, dan data menu. Foto produk bisa diunggah saat menambah menu. Perubahan tersimpan di browser ini.</p>
+      <p class="panel-sub">Ubah konten dan menu setelah masuk dengan akun admin. Perubahan tersimpan di database dan tampil untuk semua pengunjung.</p>
       <div class="form-field full">
         <label for="hero-background-upload">Foto background utama</label>
         <input class="field" id="hero-background-upload" type="file" accept="image/*">
@@ -412,12 +449,74 @@ Ngopi Makin Chill!</h1>
     © <span id="year"></span> <span id="footer-copy">Warung Seblak Sukses Makmur · Dibuat fresh, dikirim dengan hangat.</span>
   </footer>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <dialog id="admin-login-dialog" class="admin-login-dialog" aria-labelledby="admin-login-title">
+    <h2 id="admin-login-title">Masuk pengelola</h2>
+    <p>Gunakan akun admin yang sudah didaftarkan untuk situs ini.</p>
+    <form id="admin-login-form">
+      <div class="form-field">
+        <label for="admin-email">Email admin</label>
+        <input class="field" id="admin-email" name="email" type="email" required autocomplete="username">
+      </div>
+      <div class="form-field">
+        <label for="admin-password">Password</label>
+        <input class="field" id="admin-password" name="password" type="password" required autocomplete="current-password">
+      </div>
+      <div class="admin-login-actions">
+        <button id="admin-login-cancel" type="button">Batal</button>
+        <button class="admin-login-submit" type="submit">Masuk</button>
+      </div>
+      <p id="admin-login-status" role="status" aria-live="polite"></p>
+    </form>
+  </dialog>
+  <dialog id="admin-password-setup-dialog" class="admin-login-dialog" aria-labelledby="admin-password-setup-title">
+    <h2 id="admin-password-setup-title">Atur password admin</h2>
+    <p>Buat password untuk akun admin Anda.</p>
+    <form id="admin-password-setup-form">
+      <div class="form-field">
+        <label for="admin-new-password">Password baru</label>
+        <input class="field" id="admin-new-password" name="password" type="password" required minlength="8" autocomplete="new-password">
+      </div>
+      <div class="form-field">
+        <label for="admin-confirm-password">Ulangi password</label>
+        <input class="field" id="admin-confirm-password" name="confirmPassword" type="password" required minlength="8" autocomplete="new-password">
+      </div>
+      <div class="admin-login-actions">
+        <button class="admin-login-submit" type="submit">Simpan password</button>
+      </div>
+      <p id="admin-password-setup-status" role="status" aria-live="polite"></p>
+    </form>
+  </dialog>
+  <dialog id="image-editor" class="image-editor" aria-labelledby="image-editor-title">
+    <h2 id="image-editor-title">Sesuaikan foto produk</h2>
+    <p class="image-editor-help">Atur ukuran dan posisi foto agar pas di kartu menu.</p>
+    <canvas id="image-editor-preview" class="image-editor-preview" width="1200" height="675" aria-label="Pratinjau foto produk"></canvas>
+    <div class="image-editor-controls">
+      <div class="image-editor-control">
+        <label for="image-editor-zoom">Ukuran foto</label>
+        <input id="image-editor-zoom" type="range" min="1" max="3" step="0.01" value="1" aria-label="Ukuran foto">
+      </div>
+      <div class="image-editor-control">
+        <label for="image-editor-x">Posisi horizontal</label>
+        <input id="image-editor-x" type="range" min="0" max="100" step="1" value="50" aria-label="Posisi horizontal foto">
+      </div>
+      <div class="image-editor-control">
+        <label for="image-editor-y">Posisi vertikal</label>
+        <input id="image-editor-y" type="range" min="0" max="100" step="1" value="50" aria-label="Posisi vertikal foto">
+      </div>
+    </div>
+    <div class="image-editor-actions">
+      <button id="image-editor-cancel" type="button">Batal</button>
+      <button id="image-editor-apply" class="image-editor-apply" type="button">Gunakan foto</button>
+    </div>
+  </dialog>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     // Ubah nomor ini ke nomor WhatsApp kedai (format internasional tanpa + atau spasi).
     const WHATSAPP_NUMBER = "6282326773773";
-    // Ganti dengan password pilihan Anda. Ini hanya menyembunyikan tombol di halaman, bukan pengaman sungguhan.
-    const ADMIN_PASSWORD = "1755599263";
+    // Isi dengan Project URL dan anon/publishable key Supabase, bukan service_role key.
+    const SUPABASE_URL = "https://ocvdrfoheapvjjxzlkjt.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_NDB-V5e6q9VxG3WpiLTPKQ_JCH8MNoh";
 
     // Data katalog dummy: gambar juga bisa diganti dari tombol "Ubah foto" pada kartu produk.
     const products = [
@@ -448,10 +547,6 @@ Ngopi Makin Chill!</h1>
     ];
 
     const DEFAULT_PRODUCT_IMAGE = products[0].image;
-    const CATALOG_STORAGE_KEY = "warung-seblak-catalog";
-    const HERO_BACKGROUND_STORAGE_KEY = "warung-seblak-hero-background";
-    const CONTENT_STORAGE_KEY = "warung-seblak-site-content";
-    const LOGO_STORAGE_KEY = "warung-seblak-logo";
     const DEFAULT_CONTENT = {
       eyebrow: "Good coffee, good day",
       title: "Seblak Nampol,\nNgopi Makin Chill!",
@@ -474,6 +569,11 @@ Ngopi Makin Chill!</h1>
     const FREE_DELIVERY_RADIUS_KM = 5;
     const DELIVERY_PRICE_PER_KM = 4000;
     const MINIMUM_ORDER_AMOUNT = 50000;
+    const authRedirectType = new URLSearchParams(location.hash.slice(1)).get("type") ||
+      new URLSearchParams(location.search).get("type");
+    const supabaseClient = window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      : null;
     const formatRupiah = value => new Intl.NumberFormat("id-ID", {
       style: "currency", currency: "IDR", maximumFractionDigits: 0
     }).format(value);
@@ -488,6 +588,8 @@ Ngopi Makin Chill!</h1>
     let deliveryFee = null;
     let deliveryCalculationStatus = "idle";
     let locationRequestId = 0;
+    let isSiteAdmin = false;
+    let sharedDataReady = false;
 
     const menuGrid = document.getElementById("menu-grid");
     const filters = document.getElementById("filters");
@@ -497,7 +599,13 @@ Ngopi Makin Chill!</h1>
     const adminProducts = document.getElementById("admin-products");
     const heroBackground = document.querySelector(".hero-background");
     const brandLogo = document.querySelector(".brand-logo");
-    const IMAGE_STORAGE_PREFIX = "warung-seblak-image-";
+    const adminLoginDialog = document.getElementById("admin-login-dialog");
+    const adminPasswordSetupDialog = document.getElementById("admin-password-setup-dialog");
+    const imageEditor = document.getElementById("image-editor");
+    const imageEditorCanvas = document.getElementById("image-editor-preview");
+    let imageEditorBitmap = null;
+    let imageEditorApply = null;
+    let pendingProductImage = null;
 
     function escapeHtml(value) {
       const entities = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
@@ -516,38 +624,104 @@ Ngopi Makin Chill!</h1>
             product.temperatureOptions.every(option => option === "Es" || option === "Panas")));
     }
 
-    function loadSavedCatalog() {
-      try {
-        const savedCatalog = localStorage.getItem(CATALOG_STORAGE_KEY);
-        if (!savedCatalog) return;
-        const parsed = JSON.parse(savedCatalog);
-        if (!Array.isArray(parsed) || !parsed.every(isValidProduct) ||
-          new Set(parsed.map(product => product.id)).size !== parsed.length) {
-          throw new Error("Data katalog tersimpan tidak valid.");
+    async function loadSharedData() {
+      if (!supabaseClient) return;
+      const { data: settings, error: settingsError } = await supabaseClient
+        .from("site_data")
+        .select("key, value");
+      if (settingsError) throw settingsError;
+
+      const savedCatalog = settings.find(item => item.key === "catalog")?.value;
+      if (savedCatalog !== undefined) {
+        if (!Array.isArray(savedCatalog) || !savedCatalog.every(isValidProduct) ||
+          new Set(savedCatalog.map(product => product.id)).size !== savedCatalog.length) {
+          throw new Error("Katalog bersama tidak valid.");
         }
         const missingDefaultProducts = products.filter(product =>
           ["Nusantara", "Paket Makmur"].includes(product.category) &&
-          !parsed.some(savedProduct => savedProduct.id === product.id)
+          !savedCatalog.some(savedProduct => savedProduct.id === product.id)
         );
-        products.splice(0, products.length, ...parsed, ...missingDefaultProducts);
-      } catch (error) {
-        console.error("Katalog tersimpan tidak dapat dimuat.", error);
-        showToast("Katalog tersimpan tidak dapat dimuat. Data bawaan digunakan.");
+        products.splice(0, products.length, ...savedCatalog, ...missingDefaultProducts);
       }
+
+      const savedContent = settings.find(item => item.key === "content")?.value;
+      if (savedContent !== undefined) {
+        const loadedContent = {};
+        for (const [key, limit] of Object.entries(CONTENT_FIELD_LIMITS)) {
+          const value = savedContent?.[key];
+          if (typeof value !== "string" || !value.trim() || value.length > limit) {
+            throw new Error("Teks promosi bersama tidak valid.");
+          }
+          loadedContent[key] = value;
+        }
+        siteContent = loadedContent;
+      }
+
+      const { data: images, error: imagesError } = await supabaseClient
+        .from("site_images")
+        .select("id, image_data");
+      if (imagesError) throw imagesError;
+      images.forEach(({ id, image_data: image }) => {
+        if (typeof id !== "string" || typeof image !== "string" || !image.startsWith("data:image/")) {
+          throw new Error("Foto bersama tidak valid.");
+        }
+        const product = products.find(item => item.id === id);
+        if (product) product.image = image;
+        else if (id === "hero-background") heroBackground.src = image;
+        else if (id === "logo") brandLogo.src = image;
+      });
+      sharedDataReady = true;
     }
 
-    function saveCatalog() {
+    async function saveCatalog() {
+      if (!supabaseClient || !sharedDataReady || !isSiteAdmin) throw new Error("Sesi admin tidak aktif.");
       const catalogToSave = products.map(product => ({
         ...product,
         image: product.image.startsWith("data:image/") ? DEFAULT_PRODUCT_IMAGE : product.image
       }));
-      try {
-        localStorage.setItem(CATALOG_STORAGE_KEY, JSON.stringify(catalogToSave));
-        return true;
-      } catch (error) {
-        console.error("Katalog gagal disimpan di browser.", error);
-        return false;
-      }
+      const { error } = await supabaseClient.from("site_data")
+        .upsert({ key: "catalog", value: catalogToSave, updated_at: new Date().toISOString() }, { onConflict: "key" });
+      if (error) throw error;
+    }
+
+    async function saveSiteContent(content) {
+      if (!supabaseClient || !sharedDataReady || !isSiteAdmin) throw new Error("Sesi admin tidak aktif.");
+      const { error } = await supabaseClient.from("site_data")
+        .upsert({ key: "content", value: content, updated_at: new Date().toISOString() }, { onConflict: "key" });
+      if (error) throw error;
+    }
+
+    async function saveSharedImage(id, image) {
+      if (!supabaseClient || !sharedDataReady || !isSiteAdmin) throw new Error("Sesi admin tidak aktif.");
+      const { error } = await supabaseClient.from("site_images")
+        .upsert({ id, image_data: image, updated_at: new Date().toISOString() }, { onConflict: "id" });
+      if (error) throw error;
+    }
+
+    async function activateAdminSession(user) {
+      if (!sharedDataReady) throw new Error("Database situs belum siap.");
+      const { data, error } = await supabaseClient.from("site_admins")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("Akun ini tidak terdaftar sebagai admin situs.");
+      isSiteAdmin = true;
+      document.body.classList.add("admin-mode");
+      const button = document.getElementById("admin-toggle");
+      button.textContent = "⋮";
+      button.setAttribute("aria-label", "Keluar dari admin");
+      button.setAttribute("aria-pressed", "true");
+      renderAdminPanel();
+    }
+
+    function deactivateAdminSession() {
+      isSiteAdmin = false;
+      document.body.classList.remove("admin-mode");
+      const button = document.getElementById("admin-toggle");
+      button.textContent = "⋮";
+      button.setAttribute("aria-label", "Masuk admin");
+      button.setAttribute("aria-pressed", "false");
     }
 
     function renderSiteContent() {
@@ -558,26 +732,6 @@ Ngopi Makin Chill!</h1>
       document.getElementById("menu-title").textContent = siteContent.menuTitle;
       document.getElementById("menu-description").textContent = siteContent.menuDescription;
       document.getElementById("footer-copy").textContent = siteContent.footer;
-    }
-
-    function loadSavedContent() {
-      try {
-        const savedContent = localStorage.getItem(CONTENT_STORAGE_KEY);
-        if (!savedContent) return;
-        const parsed = JSON.parse(savedContent);
-        const loadedContent = {};
-        for (const [key, limit] of Object.entries(CONTENT_FIELD_LIMITS)) {
-          const value = parsed?.[key];
-          if (typeof value !== "string" || !value.trim() || value.length > limit) {
-            throw new Error("Teks promosi tersimpan tidak valid.");
-          }
-          loadedContent[key] = value;
-        }
-        siteContent = loadedContent;
-      } catch (error) {
-        console.error("Teks promosi tersimpan tidak dapat dimuat.", error);
-        showToast("Teks tersimpan tidak dapat dimuat. Teks bawaan digunakan.");
-      }
     }
 
     function populateContentForm() {
@@ -603,25 +757,57 @@ Ngopi Makin Chill!</h1>
       }
     }
 
+    function drawImageEditorPreview() {
+      if (!imageEditorBitmap) return;
+      const canvas = imageEditorCanvas;
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("Canvas tidak tersedia.");
+      const zoom = Number(document.getElementById("image-editor-zoom").value);
+      const horizontal = Number(document.getElementById("image-editor-x").value) / 100;
+      const vertical = Number(document.getElementById("image-editor-y").value) / 100;
+      const scale = Math.max(canvas.width / imageEditorBitmap.width, canvas.height / imageEditorBitmap.height) * zoom;
+      const width = imageEditorBitmap.width * scale;
+      const height = imageEditorBitmap.height * scale;
+      const x = (canvas.width - width) * horizontal;
+      const y = (canvas.height - height) * vertical;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(imageEditorBitmap, x, y, width, height);
+    }
+
+    async function openImageEditor(file, onApply) {
+      imageEditorBitmap = await createImageBitmap(file);
+      imageEditorApply = onApply;
+      document.getElementById("image-editor-zoom").value = "1";
+      document.getElementById("image-editor-x").value = "50";
+      document.getElementById("image-editor-y").value = "50";
+      imageEditor.showModal();
+      drawImageEditorPreview();
+    }
+
+    ["image-editor-zoom", "image-editor-x", "image-editor-y"].forEach(id => {
+      document.getElementById(id).addEventListener("input", drawImageEditorPreview);
+    });
+    document.getElementById("image-editor-cancel").addEventListener("click", () => imageEditor.close());
+    document.getElementById("image-editor-apply").addEventListener("click", () => {
+      try {
+        const croppedImage = imageEditorCanvas.toDataURL("image/jpeg", 0.84);
+        const applyImage = imageEditorApply;
+        imageEditor.close();
+        if (applyImage) applyImage(croppedImage);
+      } catch (error) {
+        console.error("Foto hasil penyesuaian gagal dibuat.", error);
+        showToast("Foto gagal disesuaikan. Coba pilih gambar lain.");
+      }
+    });
+    imageEditor.addEventListener("close", () => {
+      if (imageEditorBitmap) imageEditorBitmap.close();
+      imageEditorBitmap = null;
+      imageEditorApply = null;
+    });
+
     function refreshCategories() {
       categories = ["Semua", ...new Set(products.map(product => product.category))];
       if (!categories.includes(activeCategory)) activeCategory = "Semua";
-    }
-
-    function loadSavedImages() {
-      try {
-        products.forEach(product => {
-          const savedImage = localStorage.getItem(IMAGE_STORAGE_PREFIX + product.id);
-          if (savedImage) product.image = savedImage;
-        });
-        const savedHeroBackground = localStorage.getItem(HERO_BACKGROUND_STORAGE_KEY);
-        if (savedHeroBackground) heroBackground.src = savedHeroBackground;
-        const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
-        if (savedLogo) brandLogo.src = savedLogo;
-      } catch (error) {
-        console.error("Gambar produk tersimpan tidak dapat dimuat.", error);
-        showToast("Gambar tersimpan tidak dapat dimuat di browser ini.");
-      }
     }
 
     function renderFilters() {
@@ -683,17 +869,25 @@ Ngopi Makin Chill!</h1>
             return;
           }
           try {
-            const optimizedImage = await optimizeImage(file);
-            const product = products.find(item => item.id === input.dataset.image);
-            product.image = optimizedImage;
-            renderMenu();
-            try {
-              localStorage.setItem(IMAGE_STORAGE_PREFIX + product.id, optimizedImage);
-              showToast(`Foto ${product.name} berhasil diperbarui.`);
-            } catch (error) {
-              console.error("Foto berubah, tetapi browser tidak dapat menyimpannya.", error);
-              showToast("Foto berubah untuk sesi ini, tetapi gagal disimpan di browser.");
-            }
+            await openImageEditor(file, async optimizedImage => {
+              const product = products.find(item => item.id === input.dataset.image);
+              if (!product) {
+                showToast("Produk tidak ditemukan. Muat ulang halaman lalu coba lagi.");
+                return;
+              }
+              const previousImage = product.image;
+              product.image = optimizedImage;
+              renderMenu();
+              try {
+                await saveSharedImage(product.id, optimizedImage);
+                showToast(`Foto ${product.name} berhasil diperbarui.`);
+              } catch (error) {
+                product.image = previousImage;
+                renderMenu();
+                console.error("Foto produk gagal disimpan ke database.", error);
+                showToast("Foto gagal disimpan. Periksa koneksi admin lalu coba lagi.");
+              }
+            });
           } catch (error) {
             console.error("Foto produk gagal diproses atau disimpan.", error);
             showToast("Foto gagal disimpan. Coba gambar lain yang lebih kecil.");
@@ -721,6 +915,32 @@ Ngopi Makin Chill!</h1>
       });
     }
 
+    document.getElementById("new-product-image").addEventListener("change", async event => {
+      const input = event.currentTarget;
+      const file = input.files[0];
+      pendingProductImage = null;
+      if (!file) return;
+      if (!file.type.startsWith("image/")) {
+        showToast("Pilih file gambar untuk foto produk.");
+        input.value = "";
+        return;
+      }
+      if (file.size > 12 * 1024 * 1024) {
+        showToast("Ukuran gambar maksimal 12 MB.");
+        input.value = "";
+        return;
+      }
+      try {
+        await openImageEditor(file, croppedImage => {
+          pendingProductImage = croppedImage;
+        });
+      } catch (error) {
+        console.error("Foto produk gagal diproses.", error);
+        showToast("Foto gagal diproses. Coba gambar lain yang lebih kecil.");
+        input.value = "";
+      }
+    });
+
     document.getElementById("hero-background-upload").addEventListener("change", async event => {
       const input = event.currentTarget;
       const file = input.files[0];
@@ -737,13 +957,13 @@ Ngopi Makin Chill!</h1>
       }
       try {
         const optimizedImage = await optimizeImage(file, 1600);
-        heroBackground.src = optimizedImage;
         try {
-          localStorage.setItem(HERO_BACKGROUND_STORAGE_KEY, optimizedImage);
+          await saveSharedImage("hero-background", optimizedImage);
+          heroBackground.src = optimizedImage;
           showToast("Background utama berhasil diperbarui.");
         } catch (error) {
-          console.error("Background berubah, tetapi browser tidak dapat menyimpannya.", error);
-          showToast("Background berubah untuk sesi ini, tetapi gagal disimpan di browser.");
+          console.error("Background gagal disimpan ke database.", error);
+          showToast("Background gagal disimpan. Periksa koneksi admin lalu coba lagi.");
         }
       } catch (error) {
         console.error("Background gagal diproses atau disimpan.", error);
@@ -770,13 +990,13 @@ Ngopi Makin Chill!</h1>
       try {
         const outputType = file.type === "image/jpeg" ? "image/jpeg" : "image/png";
         const optimizedImage = await optimizeImage(file, 1000, outputType);
-        brandLogo.src = optimizedImage;
         try {
-          localStorage.setItem(LOGO_STORAGE_KEY, optimizedImage);
+          await saveSharedImage("logo", optimizedImage);
+          brandLogo.src = optimizedImage;
           showToast("Logo kedai berhasil diperbarui.");
         } catch (error) {
-          console.error("Logo berubah, tetapi browser tidak dapat menyimpannya.", error);
-          showToast("Logo berubah untuk sesi ini, tetapi gagal disimpan di browser.");
+          console.error("Logo gagal disimpan ke database.", error);
+          showToast("Logo gagal disimpan. Periksa koneksi admin lalu coba lagi.");
         }
       } catch (error) {
         console.error("Logo gagal diproses atau disimpan.", error);
@@ -1121,12 +1341,9 @@ Ngopi Makin Chill!</h1>
     });
 
     document.getElementById("year").textContent = new Date().getFullYear();
-    loadSavedCatalog();
-    loadSavedContent();
     renderSiteContent();
     populateContentForm();
     refreshCategories();
-    loadSavedImages();
     renderFilters();
     renderMenu();
     renderAdminPanel();
@@ -1135,10 +1352,120 @@ Ngopi Makin Chill!</h1>
       updateOperatingStatus(Number(document.getElementById("header-count").textContent));
     }, 15 * 1000);
 
+    async function initializeSharedSite() {
+      if (!supabaseClient) return;
+      try {
+        await loadSharedData();
+        renderSiteContent();
+        populateContentForm();
+        renderCatalogViews();
+      } catch (error) {
+        console.error("Data bersama gagal dimuat dari database.", error);
+        showToast("Data bersama gagal dimuat. Admin dinonaktifkan sampai koneksi pulih.");
+        return;
+      }
+
+      supabaseClient.auth.onAuthStateChange((_event, session) => {
+        if (!session && isSiteAdmin) deactivateAdminSession();
+      });
+      try {
+        const { data, error } = await supabaseClient.auth.getSession();
+        if (error) throw error;
+        if (data.session && ["invite", "recovery"].includes(authRedirectType)) {
+          adminPasswordSetupDialog.showModal();
+        } else if (data.session) {
+          await activateAdminSession(data.session.user);
+        }
+      } catch (error) {
+        console.error("Sesi admin tersimpan gagal dipulihkan.", error);
+        await supabaseClient.auth.signOut();
+      }
+    }
+
+    initializeSharedSite().catch(error => {
+      console.error("Inisialisasi database situs gagal.", error);
+      showToast("Database situs gagal diinisialisasi.");
+    });
+
+    document.getElementById("admin-login-cancel").addEventListener("click", () => {
+      adminLoginDialog.close();
+    });
+    document.getElementById("admin-login-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      const status = document.getElementById("admin-login-status");
+      if (!supabaseClient || !sharedDataReady) {
+        status.textContent = "Backend admin belum dikonfigurasi.";
+        return;
+      }
+      const submitButton = event.currentTarget.querySelector('[type="submit"]');
+      const formData = new FormData(event.currentTarget);
+      submitButton.disabled = true;
+      status.textContent = "Memeriksa akun...";
+      try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+          email: String(formData.get("email") || "").trim(),
+          password: String(formData.get("password") || "")
+        });
+        if (error) throw error;
+        await activateAdminSession(data.user);
+        adminLoginDialog.close();
+        event.currentTarget.reset();
+        status.textContent = "";
+        adminPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+        showToast("Admin berhasil masuk.");
+      } catch (error) {
+        console.error("Login admin gagal.", error);
+        status.textContent = "Login gagal atau akun ini tidak memiliki akses admin.";
+        event.currentTarget.querySelector('[name="password"]').value = "";
+        await supabaseClient.auth.signOut();
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+    document.getElementById("admin-password-setup-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const status = document.getElementById("admin-password-setup-status");
+      if (!supabaseClient || !sharedDataReady) {
+        status.textContent = "Backend admin belum siap. Muat ulang halaman lalu coba lagi.";
+        return;
+      }
+      const formData = new FormData(form);
+      const password = String(formData.get("password") || "");
+      if (password !== String(formData.get("confirmPassword") || "")) {
+        status.textContent = "Password tidak sama.";
+        return;
+      }
+      const submitButton = form.querySelector('[type="submit"]');
+      submitButton.disabled = true;
+      status.textContent = "Menyimpan password...";
+      try {
+        const { data, error } = await supabaseClient.auth.updateUser({ password });
+        if (error) throw error;
+        if (!data.user) throw new Error("Supabase tidak mengembalikan akun admin.");
+        await activateAdminSession(data.user);
+        adminPasswordSetupDialog.close();
+        form.reset();
+        history.replaceState(null, "", `${location.pathname}${location.search}`);
+        status.textContent = "";
+        adminPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+        showToast("Password admin berhasil disimpan.");
+      } catch (error) {
+        console.error("Pembuatan password admin gagal.", error);
+        status.textContent = "Password gagal disimpan. Periksa koneksi lalu coba lagi.";
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+
     adminPanel.addEventListener("submit", async event => {
       const form = event.target;
       if (!(form instanceof HTMLFormElement)) return;
       event.preventDefault();
+      if (!isSiteAdmin) {
+        showToast("Masuk dengan akun admin untuk mengubah situs.");
+        return;
+      }
       const formData = new FormData(form);
       if (form.id === "content-settings-form") {
         const updatedContent = {};
@@ -1150,14 +1477,14 @@ Ngopi Makin Chill!</h1>
           }
           updatedContent[key] = value;
         }
-        siteContent = updatedContent;
-        renderSiteContent();
         try {
-          localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(siteContent));
+          await saveSiteContent(updatedContent);
+          siteContent = updatedContent;
+          renderSiteContent();
           showToast("Teks promosi berhasil disimpan.");
         } catch (error) {
-          console.error("Teks berubah, tetapi browser tidak dapat menyimpannya.", error);
-          showToast("Teks berubah untuk sesi ini, tetapi gagal disimpan di browser.");
+          console.error("Teks promosi gagal disimpan ke database.", error);
+          showToast("Teks promosi gagal disimpan. Periksa koneksi admin lalu coba lagi.");
         }
         return;
       }
@@ -1174,25 +1501,13 @@ Ngopi Makin Chill!</h1>
       }
 
       if (form.id === "add-product-form") {
-        const imageFile = formData.get("image");
         let image = DEFAULT_PRODUCT_IMAGE;
-        if (imageFile instanceof File && imageFile.size > 0) {
-          if (!imageFile.type.startsWith("image/")) {
-            showToast("Pilih file gambar untuk foto produk.");
-            return;
-          }
-          if (imageFile.size > 12 * 1024 * 1024) {
-            showToast("Ukuran gambar maksimal 12 MB.");
-            return;
-          }
-          try {
-            image = await optimizeImage(imageFile);
-          } catch (error) {
-            console.error("Foto produk gagal diproses.", error);
-            showToast("Foto gagal diproses. Coba gambar lain yang lebih kecil.");
-            return;
-          }
+        const imageFile = formData.get("image");
+        if (imageFile instanceof File && imageFile.size > 0 && !pendingProductImage) {
+          showToast("Sesuaikan foto terlebih dahulu sebelum menambahkan produk.");
+          return;
         }
+        if (pendingProductImage) image = pendingProductImage;
         const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "produk";
         let id = `${slug}-${Date.now().toString(36)}`;
         while (products.some(product => product.id === id)) id = `${slug}-${Date.now().toString(36)}-${products.length}`;
@@ -1207,23 +1522,21 @@ Ngopi Makin Chill!</h1>
           ...(formData.has("temperature") ? { temperatureOptions: ["Es", "Panas"] } : {})
         };
         products.push(product);
-        let imageSaved = true;
-        if (image !== DEFAULT_PRODUCT_IMAGE) {
-          try {
-            localStorage.setItem(IMAGE_STORAGE_PREFIX + id, image);
-          } catch (error) {
-            console.error("Produk ditambahkan, tetapi foto gagal disimpan di browser.", error);
-            imageSaved = false;
-          }
+        try {
+          if (image !== DEFAULT_PRODUCT_IMAGE) await saveSharedImage(id, image);
+          await saveCatalog();
+        } catch (error) {
+          products.pop();
+          console.error("Produk gagal disimpan ke database.", error);
+          showToast("Produk gagal disimpan. Periksa koneksi admin lalu coba lagi.");
+          return;
         }
         activeCategory = "Semua";
         document.getElementById("search").value = "";
         form.reset();
-        const catalogSaved = saveCatalog();
+        pendingProductImage = null;
         renderCatalogViews(id);
-        showToast(catalogSaved && imageSaved
-          ? `${name} berhasil ditambahkan.`
-          : `${name} ditambahkan, tetapi sebagian data gagal disimpan di browser.`);
+        showToast(`${name} berhasil ditambahkan.`);
         return;
       }
 
@@ -1232,6 +1545,7 @@ Ngopi Makin Chill!</h1>
         showToast("Produk tidak ditemukan. Muat ulang halaman lalu coba lagi.");
         return;
       }
+      const previousProduct = { ...product };
       product.name = name;
       product.category = category;
       product.description = description;
@@ -1242,31 +1556,42 @@ Ngopi Makin Chill!</h1>
       } else {
         delete product.temperatureOptions;
       }
-      const saved = saveCatalog();
+      try {
+        await saveCatalog();
+      } catch (error) {
+        Object.assign(product, previousProduct);
+        console.error("Perubahan produk gagal disimpan ke database.", error);
+        renderCatalogViews(product.id);
+        showToast("Perubahan produk gagal disimpan. Periksa koneksi admin lalu coba lagi.");
+        return;
+      }
       renderCatalogViews(product.id);
-      showToast(saved ? `${name} berhasil diperbarui.` : `${name} diperbarui untuk sesi ini, tetapi gagal disimpan.`);
+      showToast(`${name} berhasil diperbarui.`);
     });
 
-    document.getElementById("admin-toggle").addEventListener("click", event => {
+    document.getElementById("admin-toggle").addEventListener("click", async event => {
       const button = event.currentTarget;
-      if (document.body.classList.contains("admin-mode")) {
-        document.body.classList.remove("admin-mode");
-        button.innerHTML = '<span class="admin-full">🔒 Admin</span><span class="admin-icon" aria-hidden="true">🔒</span>';
-        button.setAttribute("aria-pressed", "false");
-        showToast("Mode pengelola dikunci.");
+      if (isSiteAdmin) {
+        button.disabled = true;
+        try {
+          const { error } = await supabaseClient.auth.signOut();
+          if (error) throw error;
+          deactivateAdminSession();
+          showToast("Admin berhasil keluar.");
+        } catch (error) {
+          console.error("Logout admin gagal.", error);
+          showToast("Logout admin gagal. Coba lagi.");
+        } finally {
+          button.disabled = false;
+        }
         return;
       }
-      const password = window.prompt("Masukkan password pengelola:");
-      if (password === null) return;
-      if (password !== ADMIN_PASSWORD) {
-        showToast("Password pengelola salah.");
+      if (!supabaseClient) {
+        showToast("Admin belum dikonfigurasi. Hubungkan Supabase terlebih dahulu.");
         return;
       }
-      document.body.classList.add("admin-mode");
-      button.innerHTML = '<span class="admin-full">🔓 Kunci</span><span class="admin-icon" aria-hidden="true">🔓</span>';
-      button.setAttribute("aria-pressed", "true");
-      showToast("Mode pengelola aktif.");
-      adminPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById("admin-login-status").textContent = "";
+      adminLoginDialog.showModal();
     });
   </script>
 </body>
