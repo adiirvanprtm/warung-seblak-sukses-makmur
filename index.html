@@ -159,8 +159,21 @@
       background: var(--coffee); color: white; font-size: 12px; font-weight: 750;
     }
     .admin-products { display: grid; gap: 9px; margin-top: 20px; }
+    .admin-product-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 8px; }
+    .admin-product-order { display: grid; gap: 4px; }
+    .admin-order-button {
+      width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 9px;
+      color: var(--coffee); background: white; font-size: 16px; font-weight: 800;
+    }
+    .admin-order-button:hover:not(:disabled) { background: #f2f5ee; }
+    .admin-order-button:disabled { opacity: .4; cursor: not-allowed; }
     .admin-product { border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
-    .admin-product summary { padding: 13px 15px; cursor: pointer; font-size: 13px; font-weight: 750; }
+    .admin-product summary { display: flex; align-items: center; gap: 9px; padding: 13px 15px; cursor: pointer; font-size: 13px; font-weight: 750; }
+    .admin-product-drag { color: var(--muted); cursor: grab; font-size: 18px; line-height: 1; touch-action: none; }
+    .admin-product-drag:active { cursor: grabbing; }
+    .admin-product.is-dragging { opacity: .45; }
+    .admin-product.drop-before { border-top: 3px solid var(--coffee); }
+    .admin-product.drop-after { border-bottom: 3px solid var(--coffee); }
     .admin-product-form { padding: 0 15px 15px; }
     .admin-product-form .form-field { margin-bottom: 10px; }
     .admin-product-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
@@ -441,6 +454,7 @@ Ngopi Makin Chill!</h1>
         </div>
         <button class="admin-action" type="submit">＋ Tambah produk</button>
       </form>
+      <p class="panel-sub admin-sort-help">Seret ikon ⠿ untuk mengubah urutan. Di ponsel, gunakan tombol ↑/↓. Urutan tersimpan dan terlihat oleh semua pengunjung.</p>
       <div id="admin-products" class="admin-products"></div>
     </section>
 
@@ -1079,43 +1093,143 @@ Ngopi Makin Chill!</h1>
     });
 
     function renderAdminPanel(openProductId = "") {
-      adminProducts.innerHTML = products.map(product => `
-        <details class="admin-product" ${product.id === openProductId ? "open" : ""}>
-          <summary>${escapeHtml(product.name)}</summary>
-          <form class="form-grid admin-product-form" data-edit-product="${escapeHtml(product.id)}">
-            <div class="form-field">
-              <label for="edit-name-${escapeHtml(product.id)}">Nama produk</label>
-              <input class="field" id="edit-name-${escapeHtml(product.id)}" name="name" required maxlength="80" value="${escapeHtml(product.name)}">
-            </div>
-            <div class="form-field">
-              <label for="edit-price-${escapeHtml(product.id)}">Harga (Rp)</label>
-              <input class="field" id="edit-price-${escapeHtml(product.id)}" name="price" type="number" min="1" step="1" required value="${product.price}">
-            </div>
-            <div class="form-field">
-              <label for="edit-category-${escapeHtml(product.id)}">Kategori</label>
-              <input class="field" id="edit-category-${escapeHtml(product.id)}" name="category" required maxlength="40" value="${escapeHtml(product.category)}">
-            </div>
-            <div class="form-field">
-              <label for="edit-badge-${escapeHtml(product.id)}">Label menu (contoh: Best seller)</label>
-              <input class="field" id="edit-badge-${escapeHtml(product.id)}" name="badge" required maxlength="30" value="${escapeHtml(product.badge)}">
-            </div>
-            <div class="form-field full">
-              <label for="edit-description-${escapeHtml(product.id)}">Deskripsi</label>
-              <textarea class="field" id="edit-description-${escapeHtml(product.id)}" name="description" required maxlength="180">${escapeHtml(product.description)}</textarea>
-            </div>
-            <div class="form-field full">
-              <label class="admin-check"><input name="temperature" type="checkbox" ${product.temperatureOptions ? "checked" : ""}> Produk minuman (pilihan Es/Panas)</label>
-            </div>
-            <div class="admin-product-actions">
-              <button class="admin-action" type="submit">Simpan perubahan</button>
-              <button class="admin-delete-button" type="button" data-delete-product="${escapeHtml(product.id)}">Hapus menu</button>
-            </div>
-          </form>
-        </details>`).join("");
+      adminProducts.innerHTML = products.map((product, index) => `
+        <div class="admin-product-row">
+          <div class="admin-product-order" aria-label="Atur urutan ${escapeHtml(product.name)}">
+            <button class="admin-order-button" type="button" data-move-product="${escapeHtml(product.id)}" data-direction="up" aria-label="Naikkan ${escapeHtml(product.name)}" ${index === 0 ? "disabled" : ""}>↑</button>
+            <button class="admin-order-button" type="button" data-move-product="${escapeHtml(product.id)}" data-direction="down" aria-label="Turunkan ${escapeHtml(product.name)}" ${index === products.length - 1 ? "disabled" : ""}>↓</button>
+          </div>
+          <details class="admin-product" data-product-id="${escapeHtml(product.id)}" ${product.id === openProductId ? "open" : ""}>
+            <summary><span class="admin-product-drag" data-drag-product="${escapeHtml(product.id)}" draggable="true" aria-hidden="true">⠿</span><span>${escapeHtml(product.name)}</span></summary>
+            <form class="form-grid admin-product-form" data-edit-product="${escapeHtml(product.id)}">
+              <div class="form-field">
+                <label for="edit-name-${escapeHtml(product.id)}">Nama produk</label>
+                <input class="field" id="edit-name-${escapeHtml(product.id)}" name="name" required maxlength="80" value="${escapeHtml(product.name)}">
+              </div>
+              <div class="form-field">
+                <label for="edit-price-${escapeHtml(product.id)}">Harga (Rp)</label>
+                <input class="field" id="edit-price-${escapeHtml(product.id)}" name="price" type="number" min="1" step="1" required value="${product.price}">
+              </div>
+              <div class="form-field">
+                <label for="edit-category-${escapeHtml(product.id)}">Kategori</label>
+                <input class="field" id="edit-category-${escapeHtml(product.id)}" name="category" required maxlength="40" value="${escapeHtml(product.category)}">
+              </div>
+              <div class="form-field">
+                <label for="edit-badge-${escapeHtml(product.id)}">Label menu (contoh: Best seller)</label>
+                <input class="field" id="edit-badge-${escapeHtml(product.id)}" name="badge" required maxlength="30" value="${escapeHtml(product.badge)}">
+              </div>
+              <div class="form-field full">
+                <label for="edit-description-${escapeHtml(product.id)}">Deskripsi</label>
+                <textarea class="field" id="edit-description-${escapeHtml(product.id)}" name="description" required maxlength="180">${escapeHtml(product.description)}</textarea>
+              </div>
+              <div class="form-field full">
+                <label class="admin-check"><input name="temperature" type="checkbox" ${product.temperatureOptions ? "checked" : ""}> Produk minuman (pilihan Es/Panas)</label>
+              </div>
+              <div class="admin-product-actions">
+                <button class="admin-action" type="submit">Simpan perubahan</button>
+                <button class="admin-delete-button" type="button" data-delete-product="${escapeHtml(product.id)}">Hapus menu</button>
+              </div>
+            </form>
+          </details>
+        </div>`).join("");
     }
+
+    let isSavingProductOrder = false;
+    let draggedProductId = "";
+
+    async function moveProductToIndex(productId, destinationIndex) {
+      if (!isSiteAdmin || !supabaseClient || !sharedDataReady) {
+        showToast("Masuk dengan akun admin untuk mengurutkan menu.");
+        return;
+      }
+      if (isSavingProductOrder) return;
+      const currentIndex = products.findIndex(product => product.id === productId);
+      if (currentIndex === -1 || destinationIndex < 0 || destinationIndex >= products.length || currentIndex === destinationIndex) return;
+
+      const previousOrder = products.slice();
+      const [product] = products.splice(currentIndex, 1);
+      products.splice(destinationIndex, 0, product);
+      isSavingProductOrder = true;
+      adminProducts.querySelectorAll("[data-move-product]").forEach(button => { button.disabled = true; });
+      try {
+        await saveCatalog();
+      } catch (error) {
+        products.splice(0, products.length, ...previousOrder);
+        console.error("Urutan menu gagal disimpan ke database.", error);
+        renderCatalogViews(productId);
+        showToast("Urutan menu gagal disimpan. Periksa koneksi admin lalu coba lagi.");
+        return;
+      } finally {
+        isSavingProductOrder = false;
+      }
+      renderCatalogViews(productId);
+      showToast("Urutan menu berhasil disimpan.");
+    }
+
+    function clearProductDragState() {
+      draggedProductId = "";
+      adminProducts.querySelectorAll(".admin-product").forEach(item =>
+        item.classList.remove("is-dragging", "drop-before", "drop-after")
+      );
+    }
+
+    adminProducts.addEventListener("dragstart", event => {
+      if (!(event.target instanceof Element)) return;
+      const handle = event.target.closest("[data-drag-product]");
+      if (!(handle instanceof HTMLElement)) return;
+      if (!isSiteAdmin || !supabaseClient || !sharedDataReady || isSavingProductOrder || !event.dataTransfer) {
+        event.preventDefault();
+        return;
+      }
+      draggedProductId = handle.dataset.dragProduct;
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", draggedProductId);
+      handle.closest(".admin-product")?.classList.add("is-dragging");
+    });
+
+    adminProducts.addEventListener("dragover", event => {
+      if (!draggedProductId || !(event.target instanceof Element)) return;
+      const target = event.target.closest(".admin-product");
+      if (!(target instanceof HTMLElement) || target.dataset.productId === draggedProductId) return;
+      event.preventDefault();
+      adminProducts.querySelectorAll(".admin-product").forEach(item =>
+        item.classList.remove("drop-before", "drop-after")
+      );
+      const targetPosition = target.getBoundingClientRect();
+      target.classList.add(event.clientY < targetPosition.top + targetPosition.height / 2 ? "drop-before" : "drop-after");
+      if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+    });
+
+    adminProducts.addEventListener("drop", async event => {
+      if (!draggedProductId || !(event.target instanceof Element)) return;
+      const target = event.target.closest(".admin-product");
+      if (!(target instanceof HTMLElement)) return;
+      event.preventDefault();
+      const sourceIndex = products.findIndex(product => product.id === draggedProductId);
+      const targetIndex = products.findIndex(product => product.id === target.dataset.productId);
+      if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) {
+        clearProductDragState();
+        return;
+      }
+      const targetPosition = target.getBoundingClientRect();
+      const insertIndex = targetIndex + (event.clientY >= targetPosition.top + targetPosition.height / 2 ? 1 : 0);
+      const destinationIndex = insertIndex - (sourceIndex < insertIndex ? 1 : 0);
+      const sourceId = draggedProductId;
+      clearProductDragState();
+      await moveProductToIndex(sourceId, destinationIndex);
+    });
+
+    adminProducts.addEventListener("dragend", clearProductDragState);
 
     adminProducts.addEventListener("click", async event => {
       if (!(event.target instanceof Element)) return;
+      const moveButton = event.target.closest("[data-move-product]");
+      if (moveButton instanceof HTMLButtonElement) {
+        const currentIndex = products.findIndex(product => product.id === moveButton.dataset.moveProduct);
+        const destinationIndex = currentIndex + (moveButton.dataset.direction === "up" ? -1 : 1);
+        await moveProductToIndex(moveButton.dataset.moveProduct, destinationIndex);
+        return;
+      }
       const button = event.target.closest("[data-delete-product]");
       if (!(button instanceof HTMLButtonElement)) return;
       if (!isSiteAdmin || !supabaseClient || !sharedDataReady) {
