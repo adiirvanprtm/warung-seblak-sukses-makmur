@@ -1114,8 +1114,15 @@ Ngopi Makin Chill!</h1>
             </select>
           </div>
           <div class="form-field">
-            <label for="quick-reorder-position">Posisi</label>
-            <input class="field" id="quick-reorder-position" name="position" type="number" min="1" max="${products.length}" step="1" value="${selectedPosition}" required>
+            <label for="quick-reorder-position">Pilih posisi</label>
+            <select class="field" id="quick-reorder-position" name="position" required>
+              ${products.map((_, index) => {
+                const position = index + 1;
+                const label = position === 1 ? `${position} — Paling atas` :
+                  position === products.length ? `${position} — Paling bawah` : String(position);
+                return `<option value="${position}" ${position === selectedPosition ? "selected" : ""}>${label}</option>`;
+              }).join("")}
+            </select>
           </div>
           <button class="admin-action" type="submit">↕ Pindahkan</button>
         </form>` : '<p class="panel-sub">Belum ada menu untuk diurutkan.</p>';
@@ -1202,7 +1209,7 @@ Ngopi Makin Chill!</h1>
     adminProducts.addEventListener("change", event => {
       if (!(event.target instanceof HTMLSelectElement) || event.target.id !== "quick-reorder-product") return;
       const positionInput = adminProducts.querySelector("#quick-reorder-position");
-      if (!(positionInput instanceof HTMLInputElement)) return;
+      if (!(positionInput instanceof HTMLSelectElement)) return;
       const productIndex = products.findIndex(product => product.id === event.target.value);
       if (productIndex !== -1) positionInput.value = String(productIndex + 1);
     });
