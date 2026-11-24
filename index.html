@@ -159,6 +159,13 @@
       background: var(--coffee); color: white; font-size: 12px; font-weight: 750;
     }
     .admin-products { display: grid; gap: 9px; margin-top: 20px; }
+    .admin-reorder-form {
+      grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) 110px auto;
+      align-items: end; gap: 9px; margin: 0 0 8px; padding: 14px;
+      border: 1px solid var(--line); border-radius: 12px; background: #f7f8f4;
+    }
+    .admin-reorder-form .form-field { margin: 0; }
+    .admin-reorder-form .admin-action { margin: 0; }
     .admin-product-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 8px; }
     .admin-product-order { display: grid; gap: 4px; }
     .admin-order-button {
@@ -333,6 +340,8 @@
       .price { font-size: 13px; }
       .order-section { grid-template-columns: 1fr; gap: 15px; margin: 42px 0 50px; }
       .panel { padding: 20px; }
+      .admin-reorder-form { grid-template-columns: minmax(0, 1fr) 90px; }
+      .admin-reorder-form .admin-action { grid-column: 1 / -1; }
     }
     @media (max-width: 360px) {
       .menu-grid { grid-template-columns: 1fr; }
@@ -454,7 +463,7 @@ Ngopi Makin Chill!</h1>
         </div>
         <button class="admin-action" type="submit">＋ Tambah produk</button>
       </form>
-      <p class="panel-sub admin-sort-help">Seret ikon ⠿ untuk mengubah urutan. Di ponsel, gunakan tombol ↑/↓. Urutan tersimpan dan terlihat oleh semua pengunjung.</p>
+      <p class="panel-sub admin-sort-help">Cara cepat: pilih menu dan nomor urutan. Anda juga bisa menyeret ikon ⠿ atau menggunakan tombol ↑/↓.</p>
       <div id="admin-products" class="admin-products"></div>
     </section>
 
@@ -1093,7 +1102,24 @@ Ngopi Makin Chill!</h1>
     });
 
     function renderAdminPanel(openProductId = "") {
-      adminProducts.innerHTML = products.map((product, index) => `
+      const selectedProductIndex = products.findIndex(product => product.id === openProductId);
+      const selectedProductId = selectedProductIndex >= 0 ? openProductId : products[0]?.id || "";
+      const selectedPosition = Math.max(1, selectedProductIndex + 1);
+      const quickReorderForm = products.length ? `
+        <form id="quick-reorder-form" class="admin-reorder-form">
+          <div class="form-field">
+            <label for="quick-reorder-product">Pilih menu</label>
+            <select class="field" id="quick-reorder-product" name="productId" required>
+              ${products.map((product, index) => `<option value="${escapeHtml(product.id)}" ${product.id === selectedProductId ? "selected" : ""}>${index + 1}. ${escapeHtml(product.name)}</option>`).join("")}
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="quick-reorder-position">Posisi</label>
+            <input class="field" id="quick-reorder-position" name="position" type="number" min="1" max="${products.length}" step="1" value="${selectedPosition}" required>
+          </div>
+          <button class="admin-action" type="submit">↕ Pindahkan</button>
+        </form>` : '<p class="panel-sub">Belum ada menu untuk diurutkan.</p>';
+      adminProducts.innerHTML = `${quickReorderForm}${products.map((product, index) => `
         <div class="admin-product-row">
           <div class="admin-product-order" aria-label="Atur urutan ${escapeHtml(product.name)}">
             <button class="admin-order-button" type="button" data-move-product="${escapeHtml(product.id)}" data-direction="up" aria-label="Naikkan ${escapeHtml(product.name)}" ${index === 0 ? "disabled" : ""}>↑</button>
@@ -1131,7 +1157,7 @@ Ngopi Makin Chill!</h1>
               </div>
             </form>
           </details>
-        </div>`).join("");
+        </div>`).join("")}`;
     }
 
     let isSavingProductOrder = false;
@@ -1172,6 +1198,14 @@ Ngopi Makin Chill!</h1>
         item.classList.remove("is-dragging", "drop-before", "drop-after")
       );
     }
+
+    adminProducts.addEventListener("change", event => {
+      if (!(event.target instanceof HTMLSelectElement) || event.target.id !== "quick-reorder-product") return;
+      const positionInput = adminProducts.querySelector("#quick-reorder-position");
+      if (!(positionInput instanceof HTMLInputElement)) return;
+      const productIndex = products.findIndex(product => product.id === event.target.value);
+      if (productIndex !== -1) positionInput.value = String(productIndex + 1);
+    });
 
     adminProducts.addEventListener("dragstart", event => {
       if (!(event.target instanceof Element)) return;
@@ -1852,6 +1886,21 @@ Ngopi Makin Chill!</h1>
           console.error("Teks promosi gagal disimpan ke database.", error);
           showToast("Teks promosi gagal disimpan. Periksa koneksi admin lalu coba lagi.");
         }
+        return;
+      }
+      if (form.id === "quick-reorder-form") {
+        const productId = String(formData.get("productId") || "");
+        const position = Number(formData.get("position"));
+        const currentIndex = products.findIndex(product => product.id === productId);
+        if (currentIndex === -1 || !Number.isInteger(position) || position < 1 || position > products.length) {
+          showToast("Pilih menu dan nomor urutan yang valid.");
+          return;
+        }
+        if (currentIndex === position - 1) {
+          showToast("Menu sudah berada di urutan tersebut.");
+          return;
+        }
+        await moveProductToIndex(productId, position - 1);
         return;
       }
       const name = String(formData.get("name") || "").trim();
